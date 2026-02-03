@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>Teleprompter Studio</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #111827;
+      color: white;
+      min-height: 100vh;
+      padding: 16px;
+      padding-bottom: 100px;
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 24px;
+      margin-bottom: 20px;
+    }
+
+    .setup-screen, .prompter-screen {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    label {
+      display: block;
+      font-size: 14px;
+      margin-bottom: 8px;
+      color: #9ca3af;
+    }
+
+    textarea {
+      width: 100%;
+      height: 200px;
+      background: #1f2937;
+      border: 1px solid #374151;
+      border-radius: 12px;
+      padding: 16px;
+      color: white;
+      font-size: 16px;
+      resize: none;
+      margin-bottom: 20px;
+    }
+
+    textarea:focus {
+      outline: none;
+      border-color: #3b82f6;
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .control-group {
+      background: #1f2937;
+      padding: 16px;
+      border-radius: 12px;
+    }
+
+    .control-group.full-width {
+      grid-column: 1 / -1;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      margin-top: 8px;
+      accent-color: #3b82f6;
+    }
+
+    .color-options {
+      display: flex;
+      gap: 10px;
+      margin-top: 8px;
+      flex-wrap: wrap;
+    }
+
+    .color-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 3px solid #374151;
+      cursor: pointer;
+      background: transparent;
+    }
+
+    .color-btn.active {
+      border-color: #3b82f6;
+      transform: scale(1.1);
+    }
+
+    input[type="color"] {
+      width: 36px;
+      height: 36px;
+      border: none;
+      border-radius: 50%;
+      cursor: pointer;
+      background: transparent;
+      padding: 0;
+    }
+
+    .buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    button {
+      padding: 16px 24px;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .btn-primary {
+      background: #3b82f6;
+      color: white;
+    }
+
+    .btn-success {
+      background: #10b981;
+      color: white;
+    }
+
+    .btn-danger {
+      background: #ef4444;
+      color: white;
+    }
+
+    .btn-secondary {
+      background: #4b5563;
+      color: white;
+    }
+
+    .btn-warning {
+      background: #f59e0b;
+      color: white;
+    }
+
+    button:disabled {
+      background: #374151;
+      color: #6b7280;
+      cursor: not-allowed;
+    }
+
+    .camera-preview {
+      margin-top: 20px;
+      border-radius: 12px;
+      overflow: hidden;
+      background: black;
+    }
+
+    .camera-preview video {
+      width: 100%;
+      display: block;
+      transform: scaleX(-1);
+    }
+
+    .recording-container {
+      margin-top: 20px;
+      background: #1f2937;
+      padding: 16px;
+      border-radius: 12px;
+    }
+
+    .recording-container h3 {
+      margin-bottom: 12px;
+    }
+
+    .recording-container video {
+      width: 100%;
+      border-radius: 8px;
+      margin-bottom: 12px;
+    }
+
+    /* Prompter Screen */
+    .prompter-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: black;
+      display: none;
+      flex-direction: column;
+      max-width: none;
+    }
+
+    .prompter-screen.active {
+      display: flex;
+    }
+
+    .prompter-text-container {
+      flex: 1;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .prompter-gradient {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(to bottom, black 0%, transparent 30%, transparent 70%, black 100%);
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    .prompter-text {
+      padding: 40vh 24px 50vh;
+      text-align: center;
+      white-space: pre-wrap;
+      line-height: 1.5;
+    }
+
+    .prompter-controls {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(31, 41, 55, 0.95);
+      backdrop-filter: blur(10px);
+      padding: 16px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      z-index: 100;
+    }
+
+    .prompter-controls button {
+      padding: 12px 20px;
+      font-size: 14px;
+    }
+
+    .rec-indicator {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      background: #ef4444;
+      padding: 8px 16px;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 600;
+      z-index: 100;
+    }
+
+    .rec-dot {
+      width: 10px;
+      height: 10px;
+      background: white;
+      border-radius: 50%;
+      animation: pulse 1s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .color-quick {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      padding-left: 16px;
+      border-left: 1px solid #4b5563;
+    }
+
+    .color-quick .color-btn {
+      width: 28px;
+      height: 28px;
+      border-width: 2px;
+    }
+
+    .error-message {
+      background: rgba(239, 68, 68, 0.9);
+      padding: 16px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    /* Camera in prompter mode */
+    .split-view {
+      display: grid;
+      grid-template-rows: 1fr 1fr;
+      height: calc(100vh - 80px);
+    }
+
+    .split-view .prompter-text-container {
+      min-height: 0;
+    }
+
+    .split-view .camera-feed {
+      position: relative;
+      background: black;
+    }
+
+    .split-view .camera-feed video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform: scaleX(-1);
+    }
+  </style>
+</head>
+<body>
+  <!-- Setup Screen -->
+  <div class="setup-screen" id="setupScreen">
+    <h1>📹 Teleprompter Studio</h1>
+
+    <div id="errorMessage" class="error-message hidden"></div>
+
+    <label for="script">Your Script</label>
+    <textarea id="script" placeholder="Paste your script here..."></textarea>
+
+    <div class="controls">
+      <div class="control-group">
+        <label>Speed: <span id="speedValue">50</span></label>
+        <input type="range" id="speed" min="10" max="90" value="50" />
+      </div>
+
+      <div class="control-group">
+        <label>Font Size: <span id="fontValue">32</span>px</label>
+        <input type="range" id="fontSize" min="20" max="60" value="32" />
+      </div>
+
+      <div class="control-group full-width">
+        <label>Text Color</label>
+        <div class="color-options">
+          <button class="color-btn active" data-color="#ffffff" style="background: #ffffff;"></button>
+          <button class="color-btn" data-color="#fef08a" style="background: #fef08a;"></button>
+          <button class="color-btn" data-color="#67e8f9" style="background: #67e8f9;"></button>
+          <button class="color-btn" data-color="#86efac" style="background: #86efac;"></button>
+          <input type="color" id="customColor" value="#ffffff" title="Custom color" />
+        </div>
+      </div>
+    </div>
+
+    <div class="buttons">
+      <button class="btn-primary" id="cameraBtn">
+        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+        </svg>
+        <span id="cameraBtnText">Enable Camera</span>
+      </button>
+
+      <button class="btn-success" id="startBtn" disabled>
+        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        Start Prompter
+      </button>
+    </div>
+
+    <div class="camera-preview hidden" id="cameraPreview">
+      <video id="previewVideo" autoplay muted playsinline></video>
+    </div>
+
+    <div class="recording-container hidden" id="recordingContainer">
+      <h3>Last Recording</h3>
+      <video id="recordedVideo" controls playsinline></video>
+      <button class="btn-primary" id="downloadBtn">
+        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+        </svg>
+        Download Video
+      </button>
+    </div>
+  </div>
+
+  <!-- Prompter Screen -->
+  <div class="prompter-screen" id="prompterScreen">
+    <div id="recIndicator" class="rec-indicator hidden">
+      <div class="rec-dot"></div>
+      REC
+    </div>
+
+    <div id="prompterContent">
+      <div class="prompter-text-container" id="prompterContainer">
+        <div class="prompter-gradient"></div>
+        <div class="prompter-text" id="prompterText"></div>
+      </div>
+    </div>
+
+    <div class="prompter-controls">
+      <button class="btn-secondary" id="restartBtn">Restart</button>
+      <button class="btn-danger" id="recordBtn">
+        <span style="width:12px;height:12px;background:white;border-radius:50%;display:inline-block;"></span>
+        Record
+      </button>
+      <button class="btn-warning" id="exitBtn">Exit</button>
+
+      <div class="color-quick">
+        <button class="color-btn active" data-color="#ffffff" style="background: #ffffff;"></button>
+        <button class="color-btn" data-color="#fef08a" style="background: #fef08a;"></button>
+        <button class="color-btn" data-color="#67e8f9" style="background: #67e8f9;"></button>
+        <button class="color-btn" data-color="#86efac" style="background: #86efac;"></button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // State
+    let stream = null;
+    let mediaRecorder = null;
+    let recordedChunks = [];
+    let scrollInterval = null;
+    let cameraReady = false;
+    let isRecording = false;
+    let textColor = '#ffffff';
+
+    // Elements
+    const setupScreen = document.getElementById('setupScreen');
+    const prompterScreen = document.getElementById('prompterScreen');
+    const scriptInput = document.getElementById('script');
+    const speedSlider = document.getElementById('speed');
+    const speedValue = document.getElementById('speedValue');
+    const fontSlider = document.getElementById('fontSize');
+    const fontValue = document.getElementById('fontValue');
+    const cameraBtn = document.getElementById('cameraBtn');
+    const cameraBtnText = document.getElementById('cameraBtnText');
+    const startBtn = document.getElementById('startBtn');
+    const cameraPreview = document.getElementById('cameraPreview');
+    const previewVideo = document.getElementById('previewVideo');
+    const prompterText = document.getElementById('prompterText');
+    const prompterContent = document.getElementById('prompterContent');
+    const restartBtn = document.getElementById('restartBtn');
+    const recordBtn = document.getElementById('recordBtn');
+    const exitBtn = document.getElementById('exitBtn');
+    const recIndicator = document.getElementById('recIndicator');
+    const recordingContainer = document.getElementById('recordingContainer');
+    const recordedVideo = document.getElementById('recordedVideo');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const errorMessage = document.getElementById('errorMessage');
+    const customColor = document.getElementById('customColor');
+
+    // Update slider values
+    speedSlider.addEventListener('input', () => {
+      speedValue.textContent = speedSlider.value;
+    });
+
+    fontSlider.addEventListener('input', () => {
+      fontValue.textContent = fontSlider.value;
+    });
+
+    // Enable start button when script has content
+    scriptInput.addEventListener('input', () => {
+      startBtn.disabled = !scriptInput.value.trim();
+    });
+
+    // Color selection
+    document.querySelectorAll('.color-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (!btn.dataset.color) return;
+        textColor = btn.dataset.color;
+        document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll(`.color-btn[data-color="${textColor}"]`).forEach(b => b.classList.add('active'));
+        const pt = document.getElementById('prompterText');
+        if (pt) pt.style.color = textColor;
+      });
+    });
+
+    customColor.addEventListener('input', () => {
+      textColor = customColor.value;
+      document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
+      const pt = document.getElementById('prompterText');
+      if (pt) pt.style.color = textColor;
+    });
+
+    // Camera handling
+    async function startCamera() {
+      try {
+        errorMessage.classList.add('hidden');
+        cameraBtnText.textContent = 'Starting...';
+
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'user' },
+          audio: true
+        });
+
+        previewVideo.srcObject = stream;
+        await previewVideo.play();
+
+        cameraPreview.classList.remove('hidden');
+        cameraReady = true;
+        cameraBtnText.textContent = 'Camera Ready ✓';
+        cameraBtn.classList.remove('btn-primary');
+        cameraBtn.classList.add('btn-success');
+      } catch (err) {
+        console.error('Camera error:', err);
+        showError('Could not access camera. Please tap "Allow" when prompted for camera access.');
+        cameraBtnText.textContent = 'Try Again';
+      }
+    }
+
+    function showError(msg) {
+      errorMessage.textContent = msg;
+      errorMessage.classList.remove('hidden');
+    }
+
+    cameraBtn.addEventListener('click', startCamera);
+
+    // Start prompter
+    startBtn.addEventListener('click', () => {
+      // Hide setup
+      setupScreen.style.display = 'none';
+      prompterScreen.classList.add('active');
+
+      // If camera is ready, show split view
+      if (cameraReady && stream) {
+        prompterContent.innerHTML = `
+          <div class="split-view">
+            <div class="prompter-text-container" id="prompterContainer">
+              <div class="prompter-gradient"></div>
+              <div class="prompter-text" id="prompterText" style="font-size: ${fontSlider.value}px; color: ${textColor};">${escapeHtml(scriptInput.value)}</div>
+            </div>
+            <div class="camera-feed">
+              <video id="liveVideo" autoplay muted playsinline></video>
+            </div>
+          </div>
+        `;
+
+        const liveVideo = document.getElementById('liveVideo');
+        liveVideo.srcObject = stream;
+        liveVideo.play();
+      } else {
+        prompterContent.innerHTML = `
+          <div class="prompter-text-container" id="prompterContainer">
+            <div class="prompter-gradient"></div>
+            <div class="prompter-text" id="prompterText" style="font-size: ${fontSlider.value}px; color: ${textColor};">${escapeHtml(scriptInput.value)}</div>
+          </div>
+        `;
+        recordBtn.classList.add('hidden');
+      }
+
+      startScrolling();
+    });
+
+    function startScrolling() {
+      const container = document.getElementById('prompterContainer');
+      if (!container) return;
+
+      container.scrollTop = 0;
+
+      if (scrollInterval) clearInterval(scrollInterval);
+
+      const speed = 100 - parseInt(speedSlider.value, 10);
+      scrollInterval = setInterval(() => {
+        container.scrollTop += 1;
+      }, speed);
+    }
+
+    function stopScrolling() {
+      if (scrollInterval) {
+        clearInterval(scrollInterval);
+        scrollInterval = null;
+      }
+    }
+
+    // Restart
+    restartBtn.addEventListener('click', () => {
+      const container = document.getElementById('prompterContainer');
+      if (container) container.scrollTop = 0;
+    });
+
+    // Recording
+    recordBtn.addEventListener('click', () => {
+      if (!isRecording) startRecording();
+      else stopRecording();
+    });
+
+    function startRecording() {
+      if (!stream) return;
+
+      recordedChunks = [];
+
+      const options = { mimeType: 'video/mp4' };
+      if (!MediaRecorder.isTypeSupported('video/mp4')) {
+        options.mimeType = 'video/webm';
+      }
+
+      try {
+        mediaRecorder = new MediaRecorder(stream, options);
+
+        mediaRecorder.ondataavailable = (e) => {
+          if (e.data.size > 0) recordedChunks.push(e.data);
+        };
+
+        mediaRecorder.onstop = () => {
+          const blob = new Blob(recordedChunks, { type: options.mimeType });
+          const url = URL.createObjectURL(blob);
+          recordedVideo.src = url;
+          recordingContainer.classList.remove('hidden');
+
+          // Store for download
+          downloadBtn.onclick = () => {
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `recording-${Date.now()}.${options.mimeType.includes('mp4') ? 'mp4' : 'webm'}`;
+            a.click();
+          };
+        };
+
+        mediaRecorder.start(1000);
+        isRecording = true;
+        recIndicator.classList.remove('hidden');
+        recordBtn.innerHTML = '<span style="width:12px;height:12px;background:white;display:inline-block;"></span> Stop';
+      } catch (err) {
+        console.error('Recording error:', err);
+        alert('Could not start recording: ' + err.message);
+      }
+    }
+
+    function stopRecording() {
+      if (mediaRecorder && isRecording) {
+        mediaRecorder.stop();
+        isRecording = false;
+        recIndicator.classList.add('hidden');
+        recordBtn.innerHTML = '<span style="width:12px;height:12px;background:white;border-radius:50%;display:inline-block;"></span> Record';
+      }
+    }
+
+    // Exit prompter
+    exitBtn.addEventListener('click', () => {
+      stopScrolling();
+      if (isRecording) stopRecording();
+
+      prompterScreen.classList.remove('active');
+      setupScreen.style.display = 'block';
+
+      // Restore preview if camera still active
+      if (cameraReady && stream) {
+        previewVideo.srcObject = stream;
+        previewVideo.play();
+      }
+    });
+
+    // Color quick change in prompter mode
+    document.querySelector('.color-quick').addEventListener('click', (e) => {
+      const btn = e.target.closest('.color-btn');
+      if (!btn || !btn.dataset.color) return;
+
+      textColor = btn.dataset.color;
+      document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll(`.color-btn[data-color="${textColor}"]`).forEach(b => b.classList.add('active'));
+      const pt = document.getElementById('prompterText');
+      if (pt) pt.style.color = textColor;
+    });
+
+    // Minimal HTML escaping to avoid breaking template literals
+    function escapeHtml(str) {
+      return String(str)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;')
+        .replaceAll('\n', '<br>');
+    }
+  </script>
+</body>
+</html>
